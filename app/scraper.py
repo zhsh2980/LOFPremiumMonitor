@@ -379,6 +379,13 @@ class JisiluScraper:
                 self.log_scrape_result("success", count, duration=duration)
                 
                 logger.info(f"抓取完成，共 {count} 条数据，耗时 {duration:.2f} 秒")
+                
+                # 手动关闭资源
+                if self.context:
+                    self.context.close()
+                if self.browser:
+                    self.browser.close()
+                    
                 return True
                 
         except Exception as e:
@@ -387,12 +394,6 @@ class JisiluScraper:
             logger.error(f"抓取失败: {error_msg}")
             self.log_scrape_result("failed", error_message=error_msg, duration=duration)
             return False
-            
-        finally:
-            if self.context:
-                self.context.close()
-            if self.browser:
-                self.browser.close()
 
 
 def run_scrape():

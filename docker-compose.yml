@@ -9,6 +9,7 @@ services:
     ports:
       - "8081:8000"
     environment:
+      - PYTHONUNBUFFERED=1
       - JISILU_USERNAME=${JISILU_USERNAME}
       - JISILU_PASSWORD=${JISILU_PASSWORD}
       - API_TOKEN=${API_TOKEN}
