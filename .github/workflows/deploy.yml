@@ -1,0 +1,47 @@
+name: Deploy to Server
+
+on:
+  workflow_dispatch:  # 手动触发
+    inputs:
+      confirm:
+        description: '确认部署到生产服务器？'
+        required: true
+        default: 'yes'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'yes'
+    
+    steps:
+      - name: 部署到服务器
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            echo "🚀 开始部署 LOF 溢价监控服务..."
+            
+            cd ${{ secrets.DEPLOY_PATH }}
+            
+            echo "📥 拉取最新代码..."
+            git pull origin main
+            
+            echo "🔨 重新构建并启动容器..."
+            docker compose up -d --build
+            
+            echo "⏳ 等待服务启动..."
+            sleep 10
+            
+            echo "✅ 检查服务状态..."
+            docker compose ps
+            
+            echo "🏥 健康检查..."
+            curl -s http://localhost:8081/healthz || echo "警告: 健康检查失败"
+            
+            echo "🎉 部署完成!"

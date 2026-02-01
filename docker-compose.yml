@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # API 服务
+  api:
+    build: .
+    container_name: lof-api
+    restart: unless-stopped
+    ports:
+      - "8081:8000"
+    environment:
+      - JISILU_USERNAME=${JISILU_USERNAME}
+      - JISILU_PASSWORD=${JISILU_PASSWORD}
+      - API_TOKEN=${API_TOKEN}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@lof-postgres:5432/${POSTGRES_DB}
+      - TZ=${TZ:-Asia/Shanghai}
+      - SCRAPE_MIN_INTERVAL=${SCRAPE_MIN_INTERVAL:-50}
+      - SCRAPE_MAX_INTERVAL=${SCRAPE_MAX_INTERVAL:-70}
+      - SCRAPE_START_HOUR=${SCRAPE_START_HOUR:-7}
+      - SCRAPE_END_HOUR=${SCRAPE_END_HOUR:-24}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - lof-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: lof-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - TZ=${TZ:-Asia/Shanghai}
+    volumes:
+      - lof-postgres-data:/var/lib/postgresql/data
+    networks:
+      - lof-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  lof-network:
+    driver: bridge
+
+volumes:
+  lof-postgres-data:
