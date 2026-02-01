@@ -74,14 +74,15 @@ class ScrapeScheduler:
         return next_run
     
     def _scrape_job(self):
-        """抓取任务（在独立线程中执行以避免与 asyncio 冲突）"""
+        """抓取任务（在独立进程中执行以避免与 asyncio 冲突）"""
         import concurrent.futures
         
         logger.info("定时任务触发，开始抓取...")
         
         try:
-            # 使用线程池执行抓取，避免 Playwright Sync API 与 asyncio 冲突
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            # 使用进程池执行抓取，彻底隔离 Playwright 环境
+            # 注意：run_scrape 必须是顶层函数才能被 pickle
+            with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(run_scrape)
                 success = future.result(timeout=300)  # 5分钟超时
                 
