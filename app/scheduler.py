@@ -75,22 +75,33 @@ class ScrapeScheduler:
     
     def _scrape_job(self):
         """抓取任务（在独立进程中执行以避免与 asyncio 冲突）"""
-        import concurrent.futures
+        import subprocess
+        import sys
         
         logger.info("定时任务触发，开始抓取...")
         
         try:
-            # 使用进程池执行抓取，彻底隔离 Playwright 环境
-            # 注意：run_scrape 必须是顶层函数才能被 pickle
-            with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(run_scrape)
-                success = future.result(timeout=300)  # 5分钟超时
+            # 使用 subprocess 执行抓取，彻底隔离环境
+            logger.info("启动子进程执行抓取...")
+            result = subprocess.run(
+                [sys.executable, "-m", "app.run_scrape"],
+                capture_output=True,
+                text=True,
+                timeout=300  # 5分钟超时
+            )
+            
+            # 输出子进程日志
+            if result.stdout:
+                logger.info(f"抓取子进程输出:\n{result.stdout}")
+            if result.stderr:
+                logger.warning(f"抓取子进程错误输出:\n{result.stderr}")
                 
-            if success:
+            if result.returncode == 0:
                 logger.info("抓取任务完成")
             else:
-                logger.warning("抓取任务失败")
-        except concurrent.futures.TimeoutError:
+                logger.error(f"抓取任务失败，返回码: {result.returncode}")
+                
+        except subprocess.TimeoutExpired:
             logger.error("抓取任务超时")
         except Exception as e:
             logger.error(f"抓取任务异常: {e}")
