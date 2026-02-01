@@ -67,6 +67,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def check_ip_middleware(request, call_next):
+    """IP 白名单检查中间件"""
+    ip_list = settings.ip_list
+    
+    # 如果允许所有，直接通过
+    if "*" in ip_list:
+        return await call_next(request)
+    
+    # 获取真实 IP (优先 X-Forwarded-For，适配 Docker/Nginx)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "unknown"
+        
+    # 检查是否在白名单中
+    if client_ip not in ip_list:
+        logger.warning(f"拒绝非法 IP 访问: {client_ip}")
+        # 这里返回 JSON 响应
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=403,
+            content={"code": 403, "message": f"Access denied from {client_ip}"}
+        )
+        
+    return await call_next(request)
+
 # 注册路由
 app.include_router(api_router, prefix="/api")
 

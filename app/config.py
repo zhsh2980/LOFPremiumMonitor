@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     # 默认筛选
     default_min_premium: float = 3.0  # 默认最小溢价率（%）
     
+    # 安全配置
+    allowed_ips: str = "*"  # 允许访问的 IP 列表，逗号分隔。* 表示允许所有
+
+    @property
+    def ip_list(self) -> list[str]:
+        """解析 allowed_ips 为列表"""
+        if not self.allowed_ips or self.allowed_ips == "*":
+            return ["*"]
+        return [ip.strip() for ip in self.allowed_ips.split(",") if ip.strip()]
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
