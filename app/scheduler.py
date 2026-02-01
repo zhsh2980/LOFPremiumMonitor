@@ -118,10 +118,16 @@ class ScrapeScheduler:
         # 启动调度器
         self.scheduler.start()
         
-        # 如果需要且在抓取时间段内，立即执行一次
+        # 如果需要且在抓取时间段内，延迟几秒后执行首次抓取（避免阻塞启动）
         if run_immediately and self._is_in_scrape_hours():
-            logger.info("立即执行首次抓取...")
-            self._scrape_job()
+            logger.info("安排首次抓取（5秒后执行）...")
+            self.next_run_time = datetime.now() + timedelta(seconds=5)
+            self.scheduler.add_job(
+                self._scrape_job,
+                trigger=DateTrigger(run_date=self.next_run_time),
+                id="scrape_job",
+                replace_existing=True
+            )
         else:
             # 安排下一次任务
             self._schedule_next()
