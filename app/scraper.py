@@ -1,19 +1,25 @@
 """
 集思录数据抓取模块
 使用 Playwright 模拟浏览器访问
+支持登录状态持久化，减少重复登录
 """
 
+import os
 import re
 import time
 from datetime import datetime, date
 from decimal import Decimal
+from pathlib import Path
 from typing import List, Dict, Optional
-from playwright.sync_api import sync_playwright, Page, Browser
+from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext
 from loguru import logger
 
 from app.config import get_settings
 from app.database import SessionLocal
 from app.models import LOFData, ScrapeLog
+
+# 登录状态保存路径
+AUTH_STATE_FILE = Path("/tmp/jisilu_auth_state.json")
 
 
 class JisiluScraper:
@@ -25,6 +31,7 @@ class JisiluScraper:
     def __init__(self):
         self.settings = get_settings()
         self.browser: Optional[Browser] = None
+        self.context: Optional[BrowserContext] = None
         self.page: Optional[Page] = None
     
     def _parse_number(self, text: str) -> Optional[float]:
@@ -101,6 +108,45 @@ class JisiluScraper:
         
         return name, tags
     
+    def _has_saved_auth_state(self) -> bool:
+        """检查是否有保存的登录状态"""
+        return AUTH_STATE_FILE.exists()
+    
+    def _load_auth_state(self, browser: Browser) -> BrowserContext:
+        """加载已保存的登录状态创建浏览器上下文"""
+        logger.info("加载已保存的登录状态...")
+        return browser.new_context(storage_state=str(AUTH_STATE_FILE))
+    
+    def _save_auth_state(self, context: BrowserContext):
+        """保存当前登录状态"""
+        logger.info(f"保存登录状态到 {AUTH_STATE_FILE}")
+        context.storage_state(path=str(AUTH_STATE_FILE))
+    
+    def _is_logged_in(self, page: Page) -> bool:
+        """检查当前页面是否已登录"""
+        try:
+            # 访问需要登录才能看到完整数据的页面
+            page.goto(self.LOF_ARB_URL, wait_until="networkidle", timeout=30000)
+            
+            # 检查是否有登录提示或者被重定向到登录页
+            if "login" in page.url:
+                logger.info("登录状态已失效，需要重新登录")
+                return False
+            
+            # 检查页面是否有用户信息（已登录的标志）
+            # 等待表格加载，如果能看到数据说明已登录
+            try:
+                page.wait_for_selector("#flex_arb tbody tr", timeout=10000)
+                logger.info("登录状态有效，已成功加载数据页面")
+                return True
+            except:
+                logger.info("无法加载数据，可能未登录或登录已过期")
+                return False
+                
+        except Exception as e:
+            logger.warning(f"检查登录状态时出错: {e}")
+            return False
+    
     def login(self, page: Page) -> bool:
         """登录集思录"""
         logger.info("正在登录集思录...")
@@ -113,6 +159,12 @@ class JisiluScraper:
             
             # 填写密码
             page.fill('input[name="password"]', self.settings.jisilu_password)
+            
+            # 勾选"记住我"（如果有的话）
+            remember_me = page.query_selector('input[name="auto_login"], input#auto_login, .remember-me input')
+            if remember_me and not remember_me.is_checked():
+                remember_me.click()
+                logger.info("已勾选'记住我'")
             
             # 勾选同意协议（使用可见的复选框）
             checkbox = page.query_selector('.user_agree input[type="checkbox"]')
@@ -147,8 +199,9 @@ class JisiluScraper:
         logger.info("正在抓取 LOF 套利数据...")
         
         try:
-            # 访问 LOF 套利页面
-            page.goto(self.LOF_ARB_URL, wait_until="networkidle", timeout=30000)
+            # 如果当前不在 LOF 套利页面，则跳转
+            if "#arb" not in page.url:
+                page.goto(self.LOF_ARB_URL, wait_until="networkidle", timeout=30000)
             
             # 等待表格加载（LOF套利页面使用 flex_arb 表格）
             page.wait_for_selector("#flex_arb tbody tr", timeout=30000)
@@ -283,11 +336,35 @@ class JisiluScraper:
             with sync_playwright() as p:
                 # 启动浏览器
                 self.browser = p.chromium.launch(headless=True)
-                self.page = self.browser.new_page()
                 
-                # 登录
-                if not self.login(self.page):
-                    raise Exception("登录失败")
+                # 尝试使用已保存的登录状态
+                need_login = True
+                if self._has_saved_auth_state():
+                    try:
+                        self.context = self._load_auth_state(self.browser)
+                        self.page = self.context.new_page()
+                        
+                        # 验证登录状态是否有效
+                        if self._is_logged_in(self.page):
+                            need_login = False
+                            logger.info("使用已保存的登录状态，跳过登录步骤")
+                        else:
+                            # 登录状态失效，关闭当前上下文
+                            self.context.close()
+                    except Exception as e:
+                        logger.warning(f"加载登录状态失败: {e}")
+                
+                # 需要重新登录
+                if need_login:
+                    logger.info("需要重新登录...")
+                    self.context = self.browser.new_context()
+                    self.page = self.context.new_page()
+                    
+                    if not self.login(self.page):
+                        raise Exception("登录失败")
+                    
+                    # 保存登录状态供下次使用
+                    self._save_auth_state(self.context)
                 
                 # 抓取数据
                 data_list = self.scrape_lof_data(self.page)
@@ -312,6 +389,8 @@ class JisiluScraper:
             return False
             
         finally:
+            if self.context:
+                self.context.close()
             if self.browser:
                 self.browser.close()
 
@@ -320,3 +399,4 @@ def run_scrape():
     """执行抓取任务的入口函数"""
     scraper = JisiluScraper()
     return scraper.run()
+
