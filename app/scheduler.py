@@ -74,15 +74,23 @@ class ScrapeScheduler:
         return next_run
     
     def _scrape_job(self):
-        """抓取任务"""
+        """抓取任务（在独立线程中执行以避免与 asyncio 冲突）"""
+        import concurrent.futures
+        
         logger.info("定时任务触发，开始抓取...")
         
         try:
-            success = run_scrape()
+            # 使用线程池执行抓取，避免 Playwright Sync API 与 asyncio 冲突
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(run_scrape)
+                success = future.result(timeout=300)  # 5分钟超时
+                
             if success:
                 logger.info("抓取任务完成")
             else:
                 logger.warning("抓取任务失败")
+        except concurrent.futures.TimeoutError:
+            logger.error("抓取任务超时")
         except Exception as e:
             logger.error(f"抓取任务异常: {e}")
         finally:
