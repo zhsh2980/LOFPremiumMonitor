@@ -1,5 +1,6 @@
 # 本地测试文件
 test_scrape.py
+test_auth_state.py
 test.db
 
 # 敏感信息目录
