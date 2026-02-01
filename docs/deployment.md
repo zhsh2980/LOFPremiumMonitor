@@ -67,6 +67,11 @@ PYTHONUNBUFFERED=1
 
 # 时区
 TZ=Asia/Shanghai
+
+# 安全配置：允许访问的 IP (用于后端中转场景)
+# 多个 IP 用逗号分隔，如：127.0.0.1,1.2.3.4
+# 默认为 * (允许所有)
+ALLOWED_IPS=*
 ```
 
 **生成 API Token 的方法**：
