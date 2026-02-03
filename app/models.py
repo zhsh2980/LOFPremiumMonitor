@@ -165,23 +165,39 @@ class LOFIndexData(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
-    # 基础信息
+    # 基础信息 (0-1)
     fund_code = Column(String(20), nullable=False, index=True, comment="基金代码")
     fund_name = Column(String(100), comment="基金名称")
     
-    # 市场数据
+    # 市场数据 (2-7)
     price = Column(String(50), comment="现价")
     change_pct = Column(String(50), comment="涨幅")
-    volume = Column(String(50), comment="成交额")
+    volume = Column(String(50), comment="成交额(万元)")
+    shares = Column(String(50), comment="场内份额(万份)")
+    shares_change = Column(String(50), comment="场内新增(万份)")
+    turnover_rate = Column(String(50), comment="换手率")
     
-    # 净值与溢价
+    # 净值数据 (8-10)
+    nav = Column(String(50), comment="基金净值")
+    nav_date = Column(String(50), comment="净值日期")
+    rt_valuation = Column(String(50), comment="实时估值")
+    
+    # 溢价数据 (11)
     premium_rate = Column(String(50), comment="溢价率")
     
-    # 指数相关
+    # 指数相关 (12-13)
+    tracking_index = Column(String(100), comment="跟踪指数")
     index_change_pct = Column(String(50), comment="指数涨幅")
     
-    # 状态
+    # 费率与状态 (14-17)
+    apply_fee = Column(String(50), comment="申购费")
     apply_status = Column(String(50), comment="申购状态")
+    redeem_fee = Column(String(50), comment="赎回费")
+    redeem_status = Column(String(50), comment="赎回状态")
+    
+    # 其他信息 (18-19)
+    fund_company = Column(String(100), comment="基金公司")
+    remark = Column(String(200), comment="备注")
     
     # 样式信息
     change_pct_color = Column(String(30), comment="涨幅颜色")
@@ -200,9 +216,21 @@ class LOFIndexData(Base):
             "price": self.price,
             "change_pct": self.change_pct,
             "volume": self.volume,
+            "shares": self.shares,
+            "shares_change": self.shares_change,
+            "turnover_rate": self.turnover_rate,
+            "nav": self.nav,
+            "nav_date": self.nav_date,
+            "rt_valuation": self.rt_valuation,
             "premium_rate": self.premium_rate,
+            "tracking_index": self.tracking_index,
             "index_change_pct": self.index_change_pct,
+            "apply_fee": self.apply_fee,
             "apply_status": self.apply_status,
+            "redeem_fee": self.redeem_fee,
+            "redeem_status": self.redeem_status,
+            "fund_company": self.fund_company,
+            "remark": self.remark,
             # 样式信息
             "styles": {
                 "change_pct": { "color": self.change_pct_color },

@@ -46,13 +46,27 @@
 | 2 | 现价 | `price` | String | 当前价格（原始文本） | ❌ |
 | 3 | 涨幅 | `change_pct` | String | 涨跌幅百分比 | ✅ 颜色 |
 | 4 | 成交(万元) | `volume` | String | 成交额（万元） | ❌ |
+| 5 | 场内份额(万份) | `shares` | String | 场内流通份额 | ❌ |
+| 6 | 场内新增(万份) | `shares_change` | String | 场内份额变化 | ❌ |
+| 7 | 换手率 | `turnover_rate` | String | 交易活跃度 | ❌ |
+| 8 | 基金净值 | `nav` | String | 基金单位净值 | ❌ |
+| 9 | 净值日期 | `nav_date` | String | 净值更新时间 | ❌ |
+| 10 | 实时估值 | `rt_valuation` | String | 盘中估算净值 | ❌ |
 | 11 | 溢价率 | `premium_rate` | String | 溢价率（**已倒序排序**） | ✅ 颜色 |
+| 12 | 跟踪指数 | `tracking_index` | String | 目标指数名称 | ❌ |
 | 13 | 指数涨幅 | `index_change_pct` | String | 对应指数涨跌幅 | ✅ 颜色 |
+| 14 | 申购费 | `apply_fee` | String | 申购费率 | ❌ |
 | 15 | 申购状态 | `apply_status` | String | 申购状态 | ✅ 颜色 |
+| 16 | 赎回费 | `redeem_fee` | String | 赎回费率 | ❌ |
+| 17 | 赎回状态 | `redeem_status` | String | 赎回状态 | ❌ |
+| 18 | 基金公司 | `fund_company` | String | 管理公司 | ❌ |
+| 19 | 备注 | `remark` | String | 相关提示 | ❌ |
+| 20 | 操作 | - | - | 网页操作按钮（不抓取） | ❌ |
 
 **说明**: 
-- 列索引 5-10、12、14 的字段未被抓取（如净值、折价等），如需要可以后续添加
+- **共 21 列，全部抓取**（除操作列）
 - 数据已按溢价率从高到低排序
+- 包含完整的净值、费率、流动性等信息
 
 **样式字段说明**:
 - `change_pct_color`: 涨跌幅文字颜色

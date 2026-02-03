@@ -335,19 +335,18 @@ class JisiluScraper:
         logger.info("正在抓取 QDII 商品数据...")
         
         try:
-            # 跳转到 QDII 页面并定位到商品标签
+            # 跳转到 QDII 页面
             qdii_url = "https://www.jisilu.cn/data/qdii/#qdiie"
             if page.url != qdii_url:
                 page.goto(qdii_url, wait_until="networkidle", timeout=30000)
             
-            # 点击"商品"标签以确保加载
-            # 尝试查找并点击 ID 为 tlink_qdiie 的元素 (假设是标签ID)
-            try:
-                page.click("#tlink_qdiie", timeout=5000)
-            except:
-                logger.warning("未找到商品标签点击，尝试直接读取表格")
+            # ⚠️ 关键步骤：滚动到页面底部
+            # 商品表格在页面最底部，需要滚动才能看到
+            logger.info("滚动到页面底部以加载商品表格...")
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            page.wait_for_timeout(2000)  # 等待滚动和表格加载
             
-            # 等待表格加载
+            # 等待商品表格加载
             page.wait_for_selector("#flex_qdiic tbody tr", timeout=30000)
             
             # 提取数据
@@ -466,7 +465,7 @@ class JisiluScraper:
             db.close()
     
     def scrape_lof_index_data(self, page: Page) -> List[Dict]:
-        """抓取 LOF 指数基金数据 (保持原始格式，按溢价率倒序)"""
+        """抓取 LOF 指数基金数据 (保持原始格式，按溢价率倒序，全字段)"""
         logger.info("正在抓取 LOF 指数基金数据...")
         
         try:
@@ -494,20 +493,32 @@ class JisiluScraper:
             for row in rows:
                 try:
                     cells = row.query_selector_all("td")
-                    if len(cells) < 16:
+                    if len(cells) < 20:  # 最少需要20列（索引0-19，索引20是操作列可忽略）
                         continue
                         
-                    # 提取原始文本
+                    # 提取所有字段的原始文本 (共21列，索引0-20)
                     fund_code = cells[0].inner_text().strip()
                     fund_name = cells[1].inner_text().strip()
                     price = cells[2].inner_text().strip()
                     change_pct = cells[3].inner_text().strip()
                     volume = cells[4].inner_text().strip()
+                    shares = cells[5].inner_text().strip()
+                    shares_change = cells[6].inner_text().strip()
+                    turnover_rate = cells[7].inner_text().strip()
+                    nav = cells[8].inner_text().strip()
+                    nav_date = cells[9].inner_text().strip()
+                    rt_valuation = cells[10].inner_text().strip()
                     premium_rate = cells[11].inner_text().strip()
+                    tracking_index = cells[12].inner_text().strip()
                     index_change_pct = cells[13].inner_text().strip()
+                    apply_fee = cells[14].inner_text().strip()
                     apply_status = cells[15].inner_text().strip()
+                    redeem_fee = cells[16].inner_text().strip()
+                    redeem_status = cells[17].inner_text().strip()
+                    fund_company = cells[18].inner_text().strip()
+                    remark = cells[19].inner_text().strip()
                     
-                    # 提取样式
+                    # 提取样式（保持原有的4个样式字段）
                     change_pct_style = self._extract_cell_style(cells[3])
                     premium_rate_style = self._extract_cell_style(cells[11])
                     index_change_pct_style = self._extract_cell_style(cells[13])
@@ -519,9 +530,21 @@ class JisiluScraper:
                         "price": price,
                         "change_pct": change_pct,
                         "volume": volume,
+                        "shares": shares,
+                        "shares_change": shares_change,
+                        "turnover_rate": turnover_rate,
+                        "nav": nav,
+                        "nav_date": nav_date,
+                        "rt_valuation": rt_valuation,
                         "premium_rate": premium_rate,
+                        "tracking_index": tracking_index,
                         "index_change_pct": index_change_pct,
+                        "apply_fee": apply_fee,
                         "apply_status": apply_status,
+                        "redeem_fee": redeem_fee,
+                        "redeem_status": redeem_status,
+                        "fund_company": fund_company,
+                        "remark": remark,
                         # 样式字段
                         "change_pct_color": change_pct_style.get("color"),
                         "premium_rate_color": premium_rate_style.get("color"),
