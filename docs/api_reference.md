@@ -118,7 +118,51 @@ GET /api/lof/list?min_premium=2&status=open
 **请求参数**:
 - `status`: 申购状态筛选 (同上)
 
-### 2.4 获取抓取日志
+
+### 2.4 获取 QDII 商品数据
+
+获取 QDII 页面底部的商品基金数据（原始文本格式）。
+
+- **接口地址**: `GET /api/qdii/commodity`
+- **认证**: 需要
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "update_time": "2026-02-01T20:29:00.089945",
+    "count": 1,
+    "items": [
+      {
+        "fund_code": "162719",
+        "fund_name": "石油LOF",
+        "price": "1.234",          // 原始文本
+        "change_pct": "-9.99%",    // 原始文本
+        "volume": "100.00",
+        "shares": "500.00",
+        "shares_change": "10.00",
+        "nav_t2": "1.1000",
+        "valuation_t1": "1.1200",
+        "premium_rate_t1": "10.00%",
+        "rt_valuation": "1.1300",
+        "rt_premium_rate": "8.00%",
+        "apply_status": "限10",
+        "benchmark": "标普石油天然气上游",
+        "styles": {
+          "change_pct": { "color": "#008000" },
+          "premium_rate_t1": { "color": "#ff0000" },
+          "rt_premium_rate": { "color": "#ff0000" },
+          "apply_status": { "color": "#008000" }
+        }
+      }
+    ]
+  }
+}
+```
+
+### 2.5 获取抓取日志
 
 查看最近的后台抓取任务执行记录，用于监控或排查问题。
 
