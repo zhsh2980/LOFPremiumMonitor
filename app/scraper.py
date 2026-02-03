@@ -16,7 +16,7 @@ from loguru import logger
 
 from app.config import get_settings
 from app.database import SessionLocal
-from app.models import LOFData, ScrapeLog, QDIIData
+from app.models import LOFData, ScrapeLog, QDIIData, LOFIndexData
 
 # 登录状态保存路径
 AUTH_STATE_FILE = Path("/tmp/jisilu_auth_state.json")
@@ -465,6 +465,106 @@ class JisiluScraper:
         finally:
             db.close()
     
+    def scrape_lof_index_data(self, page: Page) -> List[Dict]:
+        """抓取 LOF 指数基金数据 (保持原始格式，按溢价率倒序)"""
+        logger.info("正在抓取 LOF 指数基金数据...")
+        
+        try:
+            # 跳转到指数 LOF 页面
+            index_url = "https://www.jisilu.cn/data/lof/#index"
+            if page.url != index_url:
+                page.goto(index_url, wait_until="networkidle", timeout=30000)
+            
+            # 等待表格加载
+            page.wait_for_selector("#flex_index tbody tr", timeout=30000)
+            
+            # 找到"溢价率"表头并点击两次进行倒序排序
+            logger.info("点击溢价率表头进行排序...")
+            premium_header = page.locator("th").filter(has_text="溢价率").first
+            premium_header.click()
+            page.wait_for_timeout(1000)  # 等待排序完成
+            premium_header.click()  # 第二次点击，确保倒序
+            page.wait_for_timeout(1000)  # 等待排序完成
+            
+            # 提取数据
+            rows = page.query_selector_all("#flex_index tbody tr")
+            logger.info(f"找到 {len(rows)} 行指数 LOF 数据")
+            
+            data_list = []
+            for row in rows:
+                try:
+                    cells = row.query_selector_all("td")
+                    if len(cells) < 16:
+                        continue
+                        
+                    # 提取原始文本
+                    fund_code = cells[0].inner_text().strip()
+                    fund_name = cells[1].inner_text().strip()
+                    price = cells[2].inner_text().strip()
+                    change_pct = cells[3].inner_text().strip()
+                    volume = cells[4].inner_text().strip()
+                    premium_rate = cells[11].inner_text().strip()
+                    index_change_pct = cells[13].inner_text().strip()
+                    apply_status = cells[15].inner_text().strip()
+                    
+                    # 提取样式
+                    change_pct_style = self._extract_cell_style(cells[3])
+                    premium_rate_style = self._extract_cell_style(cells[11])
+                    index_change_pct_style = self._extract_cell_style(cells[13])
+                    apply_status_style = self._extract_cell_style(cells[15])
+                    
+                    data_list.append({
+                        "fund_code": fund_code,
+                        "fund_name": fund_name,
+                        "price": price,
+                        "change_pct": change_pct,
+                        "volume": volume,
+                        "premium_rate": premium_rate,
+                        "index_change_pct": index_change_pct,
+                        "apply_status": apply_status,
+                        # 样式字段
+                        "change_pct_color": change_pct_style.get("color"),
+                        "premium_rate_color": premium_rate_style.get("color"),
+                        "index_change_pct_color": index_change_pct_style.get("color"),
+                        "apply_status_color": apply_status_style.get("color")
+                    })
+                    
+                except Exception as e:
+                    logger.warning(f"解析指数 LOF 行数据失败: {e}")
+                    continue
+            
+            logger.info(f"成功解析 {len(data_list)} 条指数 LOF 数据")
+            return data_list
+
+        except Exception as e:
+            logger.error(f"抓取指数 LOF 数据异常: {e}")
+            return []
+    
+    def save_lof_index_to_database(self, data_list: List[Dict]) -> int:
+        """保存指数 LOF 数据到数据库"""
+        logger.info(f"正在保存指数 LOF 数据: {len(data_list)} 条")
+        
+        db = SessionLocal()
+        try:
+            # 清空旧数据
+            db.query(LOFIndexData).delete()
+            
+            # 批量插入新数据
+            for data in data_list:
+                lof_index = LOFIndexData(**data)
+                db.add(lof_index)
+            
+            db.commit()
+            logger.info(f"成功保存指数 LOF {len(data_list)} 条数据")
+            return len(data_list)
+            
+        except Exception as e:
+            db.rollback()
+            logger.error(f"保存指数 LOF 数据失败: {e}")
+            raise
+        finally:
+            db.close()
+    
     def log_scrape_result(self, status: str, record_count: int = 0, 
                           error_message: str = None, duration: float = None):
         """记录抓取日志"""
@@ -548,15 +648,26 @@ class JisiluScraper:
                     logger.warning("未获取到 QDII 数据")
                     qdii_count = 0
                 
+                # 3. 抓取并保存指数 LOF 数据
+                logger.info("=" * 30 + " 指数 LOF 数据 " + "=" * 30)
+                lof_index_data = self.scrape_lof_index_data(self.page)
+                
+                if lof_index_data:
+                    lof_index_count = self.save_lof_index_to_database(lof_index_data)
+                    logger.info(f"指数 LOF 数据抓取完成: {lof_index_count} 条")
+                else:
+                    logger.warning("未获取到指数 LOF 数据")
+                    lof_index_count = 0
+                
                 # 汇总
-                total_count = lof_count + qdii_count
+                total_count = lof_count + qdii_count + lof_index_count
                 if total_count == 0:
                     raise Exception("未获取到任何数据")
                 
                 duration = time.time() - start_time
                 self.log_scrape_result("success", total_count, duration=duration)
                 
-                logger.info(f"抓取完成，共 {total_count} 条数据 (LOF: {lof_count}, QDII: {qdii_count})，耗时 {duration:.2f} 秒")
+                logger.info(f"抓取完成，共 {total_count} 条数据 (LOF: {lof_count}, QDII: {qdii_count}, 指数LOF: {lof_index_count})，耗时 {duration:.2f} 秒")
                 
                 # 手动关闭资源
                 if self.context:

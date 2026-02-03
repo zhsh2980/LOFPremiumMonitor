@@ -159,6 +159,60 @@ class QDIIData(Base):
         }
 
 
+class LOFIndexData(Base):
+    """LOF 指数基金数据表（原始文本存储，按溢价率倒序）"""
+    __tablename__ = "lof_index_data"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # 基础信息
+    fund_code = Column(String(20), nullable=False, index=True, comment="基金代码")
+    fund_name = Column(String(100), comment="基金名称")
+    
+    # 市场数据
+    price = Column(String(50), comment="现价")
+    change_pct = Column(String(50), comment="涨幅")
+    volume = Column(String(50), comment="成交额")
+    
+    # 净值与溢价
+    premium_rate = Column(String(50), comment="溢价率")
+    
+    # 指数相关
+    index_change_pct = Column(String(50), comment="指数涨幅")
+    
+    # 状态
+    apply_status = Column(String(50), comment="申购状态")
+    
+    # 样式信息
+    change_pct_color = Column(String(30), comment="涨幅颜色")
+    premium_rate_color = Column(String(30), comment="溢价率颜色")
+    index_change_pct_color = Column(String(30), comment="指数涨幅颜色")
+    apply_status_color = Column(String(30), comment="申购状态颜色")
+    
+    # 时间戳
+    created_at = Column(DateTime, default=datetime.now, comment="创建时间")
+    
+    def to_dict(self):
+        """转换为字典"""
+        return {
+            "fund_code": self.fund_code,
+            "fund_name": self.fund_name,
+            "price": self.price,
+            "change_pct": self.change_pct,
+            "volume": self.volume,
+            "premium_rate": self.premium_rate,
+            "index_change_pct": self.index_change_pct,
+            "apply_status": self.apply_status,
+            # 样式信息
+            "styles": {
+                "change_pct": { "color": self.change_pct_color },
+                "premium_rate": { "color": self.premium_rate_color },
+                "index_change_pct": { "color": self.index_change_pct_color },
+                "apply_status": { "color": self.apply_status_color }
+            }
+        }
+
+
 class ScrapeLog(Base):
     """抓取日志表"""
     __tablename__ = "scrape_log"
