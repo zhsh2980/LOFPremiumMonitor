@@ -47,7 +47,9 @@ class LOFData(Base):
     # 基金公司
     fund_company = Column(String(50), nullable=True, comment="基金公司")
     
-    # 样式信息（用于前端展示原始颜色）    # 样式信息 (全量字段)
+    # 样式信息 (全量字段)
+    fund_code_color = Column(String(30), nullable=True)
+    fund_name_color = Column(String(30), nullable=True)
     price_color = Column(String(30), nullable=True)
     change_pct_color = Column(String(30), nullable=True)
     volume_color = Column(String(30), nullable=True)
@@ -92,6 +94,8 @@ class LOFData(Base):
             "fund_company": self.fund_company,
             # 样式信息
             "styles": {
+                "fund_code": { "color": self.fund_code_color },
+                "fund_name": { "color": self.fund_name_color },
                 "price": { "color": self.price_color },
                 "change_pct": { "color": self.change_pct_color },
                 "volume": { "color": self.volume_color },
@@ -150,6 +154,8 @@ class QDIIData(Base):
     fund_company = Column(String(100), comment="基金公司")
     
     # 样式信息 (全量字段)
+    fund_code_color = Column(String(30), nullable=True)
+    fund_name_color = Column(String(30), nullable=True)
     price_color = Column(String(30), nullable=True)
     change_pct_color = Column(String(30), nullable=True)
     volume_color = Column(String(30), nullable=True)
@@ -199,6 +205,8 @@ class QDIIData(Base):
             "fund_company": self.fund_company,
             # 样式信息
             "styles": {
+                "fund_code": { "color": self.fund_code_color },
+                "fund_name": { "color": self.fund_name_color },
                 "price": { "color": self.price_color },
                 "change_pct": { "color": self.change_pct_color },
                 "volume": { "color": self.volume_color },
@@ -263,6 +271,8 @@ class LOFIndexData(Base):
     remark = Column(String(200), comment="备注")
     
     # 样式信息 (全量字段)
+    fund_code_color = Column(String(30), nullable=True)
+    fund_name_color = Column(String(30), nullable=True)
     price_color = Column(String(30), nullable=True)
     change_pct_color = Column(String(30), nullable=True)
     volume_color = Column(String(30), nullable=True)
@@ -310,6 +320,8 @@ class LOFIndexData(Base):
             "remark": self.remark,
             # 样式信息
             "styles": {
+                "fund_code": { "color": self.fund_code_color },
+                "fund_name": { "color": self.fund_name_color },
                 "price": { "color": self.price_color },
                 "change_pct": { "color": self.change_pct_color },
                 "volume": { "color": self.volume_color },
