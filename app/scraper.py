@@ -341,13 +341,7 @@ class JisiluScraper:
             
             logger.info(f"成功解析 {len(data_list)} 条数据")
             return data_list
-                    
-                except Exception as e:
-                    logger.warning(f"解析行数据失败: {e}")
-                    continue
-            
-            logger.info(f"成功解析 {len(data_list)} 条数据")
-            return data_list
+
             
         except Exception as e:
             logger.error(f"抓取数据异常: {e}")
