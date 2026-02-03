@@ -246,7 +246,7 @@ class JisiluScraper:
             return False
     
     def scrape_lof_data(self, page: Page) -> List[Dict]:
-        """抓取 LOF 套利数据"""
+        """抓取 LOF 套利数据 (含全量样式)"""
         logger.info("正在抓取 LOF 套利数据...")
         
         try:
@@ -267,68 +267,80 @@ class JisiluScraper:
             rows = page.query_selector_all("#flex_arb tbody tr")
             logger.info(f"找到 {len(rows)} 行数据")
             
+            # 定义列名映射 (索引对应数据库字段名)
+            col_map = [
+                "fund_code", "fund_name", "price", "change_pct", "amount", 
+                "premium_rate", "estimate_nav", "nav", "nav_date", 
+                "shares", "shares_change", "apply_fee", "apply_status", 
+                "redeem_fee", "redeem_status", "fund_company"
+            ]
+            
             data_list = []
             for row in rows:
                 try:
                     cells = row.query_selector_all("td")
                     if len(cells) < 16:
                         continue
+                        
+                    row_data = {}
                     
-                    # 获取各列数据
-                    fund_code = cells[0].inner_text().strip()
+                    # 1. 提取数据值
+                    row_data["fund_code"] = cells[0].inner_text().strip()
+                    
                     name_html = cells[1].inner_html()
                     fund_name, fund_tags = self._extract_tags(name_html)
+                    row_data["fund_name"] = fund_name
+                    row_data["fund_tags"] = ",".join(fund_tags) if fund_tags else None
                     
-                    price = self._parse_number(cells[2].inner_text())
-                    change_pct = self._parse_number(cells[3].inner_text())
-                    amount = self._parse_number(cells[4].inner_text())
-                    premium_rate = self._parse_number(cells[5].inner_text())
-                    estimate_nav = self._parse_number(cells[6].inner_text())
-                    nav = self._parse_number(cells[7].inner_text())
-                    nav_date = self._parse_date(cells[8].inner_text())
-                    shares = self._parse_number(cells[9].inner_text())
-                    shares_change = self._parse_number(cells[10].inner_text())
+                    row_data["price"] = self._parse_number(cells[2].inner_text())
+                    row_data["change_pct"] = self._parse_number(cells[3].inner_text())
+                    row_data["amount"] = self._parse_number(cells[4].inner_text())
+                    row_data["premium_rate"] = self._parse_number(cells[5].inner_text())
+                    row_data["estimate_nav"] = self._parse_number(cells[6].inner_text())
+                    row_data["nav"] = self._parse_number(cells[7].inner_text())
+                    row_data["nav_date"] = self._parse_date(cells[8].inner_text())
+                    row_data["shares"] = self._parse_number(cells[9].inner_text())
+                    row_data["shares_change"] = self._parse_number(cells[10].inner_text())
+                    
                     apply_fee = cells[11].inner_text().strip()
+                    row_data["apply_fee"] = apply_fee if apply_fee and apply_fee != "-" else None
+                    
                     apply_status_text = cells[12].inner_text().strip()
                     apply_status, apply_limit = self._parse_apply_status(apply_status_text)
-                    redeem_fee = cells[13].inner_text().strip()
-                    redeem_status = cells[14].inner_text().strip()
-                    fund_company = cells[15].inner_text().strip()
+                    row_data["apply_status"] = apply_status
+                    row_data["apply_limit"] = apply_limit
                     
-                    # 提取样式信息
-                    change_pct_style = self._extract_cell_style(cells[3])
-                    premium_rate_style = self._extract_cell_style(cells[5])
-                    apply_status_style = self._extract_cell_style(cells[12])
+                    redeem_fee = cells[13].inner_text().strip()
+                    row_data["redeem_fee"] = redeem_fee if redeem_fee and redeem_fee != "-" else None
+                    
+                    redeem_status = cells[14].inner_text().strip()
+                    row_data["redeem_status"] = redeem_status if redeem_status and redeem_status != "-" else None
+                    
+                    fc = cells[15].inner_text().strip()
+                    row_data["fund_company"] = fc if fc else None
+
+                    # 2. 全量提取样式
+                    for i, col_name in enumerate(col_map):
+                        if i < len(cells):
+                            style = self._extract_cell_style(cells[i])
+                            row_data[f"{col_name}_color"] = style.get("color")
+                            
+                            # 保留 apply_status 的特殊背景色映射
+                            if col_name == "apply_status":
+                                row_data["apply_status_bg_color"] = style.get("backgroundColor")
                     
                     # 跳过无效数据
-                    if not fund_code or premium_rate is None:
+                    if not row_data["fund_code"] or row_data["premium_rate"] is None:
                         continue
                     
-                    data_list.append({
-                        "fund_code": fund_code,
-                        "fund_name": fund_name,
-                        "fund_tags": ",".join(fund_tags) if fund_tags else None,
-                        "price": price,
-                        "change_pct": change_pct,
-                        "amount": amount,
-                        "premium_rate": premium_rate,
-                        "estimate_nav": estimate_nav,
-                        "nav": nav,
-                        "nav_date": nav_date,
-                        "shares": shares,
-                        "shares_change": shares_change,
-                        "apply_fee": apply_fee if apply_fee and apply_fee != "-" else None,
-                        "apply_status": apply_status,
-                        "apply_limit": apply_limit,
-                        "redeem_fee": redeem_fee if redeem_fee and redeem_fee != "-" else None,
-                        "redeem_status": redeem_status if redeem_status and redeem_status != "-" else None,
-                        "fund_company": fund_company if fund_company else None,
-                        # 样式信息
-                        "change_pct_color": change_pct_style.get("color"),
-                        "premium_rate_color": premium_rate_style.get("color"),
-                        "apply_status_color": apply_status_style.get("color"),
-                        "apply_status_bg_color": apply_status_style.get("backgroundColor"),
-                    })
+                    data_list.append(row_data)
+                    
+                except Exception as e:
+                    logger.warning(f"解析行数据失败: {e}")
+                    continue
+            
+            logger.info(f"成功解析 {len(data_list)} 条数据")
+            return data_list
                     
                 except Exception as e:
                     logger.warning(f"解析行数据失败: {e}")
@@ -343,7 +355,7 @@ class JisiluScraper:
     
 
     def scrape_qdii_data(self, page: Page) -> List[Dict]:
-        """抓取 QDII 商品数据 (保持原始格式)"""
+        """抓取 QDII 商品数据 (含全量样式)"""
         logger.info("正在抓取 QDII 商品数据...")
         
         try:
@@ -365,6 +377,16 @@ class JisiluScraper:
             rows = page.query_selector_all("#flex_qdiic tbody tr")
             logger.info(f"找到 {len(rows)} 行 QDII 商品数据")
             
+            # 21 个字段映射
+            col_map = [
+                "fund_code", "fund_name", "price", "change_pct", "volume", 
+                "shares", "shares_change", "nav_t2", "nav_date", 
+                "valuation_t1", "valuation_date", "premium_rate_t1", 
+                "rt_valuation", "rt_premium_rate", "benchmark", 
+                "apply_fee", "apply_status", "redeem_fee", 
+                "redeem_status", "manage_fee", "fund_company"
+            ]
+            
             data_list = []
             for row in rows:
                 try:
@@ -372,63 +394,18 @@ class JisiluScraper:
                     if len(cells) < 21:  # 至少需要21列（0-20是数据，21是操作）
                         continue
                         
-                    # 提取原始文本 (共 22 列)
-                    fund_code = cells[0].inner_text().strip()
-                    fund_name = cells[1].inner_text().strip()
-                    price = cells[2].inner_text().strip()
-                    change_pct = cells[3].inner_text().strip()
-                    volume = cells[4].inner_text().strip()
-                    shares = cells[5].inner_text().strip()
-                    shares_change = cells[6].inner_text().strip()
-                    nav_t2 = cells[7].inner_text().strip()
-                    nav_date = cells[8].inner_text().strip()
-                    valuation_t1 = cells[9].inner_text().strip()
-                    valuation_date = cells[10].inner_text().strip()
-                    premium_rate_t1 = cells[11].inner_text().strip()
-                    rt_valuation = cells[12].inner_text().strip()
-                    rt_premium_rate = cells[13].inner_text().strip()
-                    benchmark = cells[14].inner_text().strip()
-                    apply_fee = cells[15].inner_text().strip()
-                    apply_status = cells[16].inner_text().strip()
-                    redeem_fee = cells[17].inner_text().strip()
-                    redeem_status = cells[18].inner_text().strip()
-                    manage_fee = cells[19].inner_text().strip()
-                    fund_company = cells[20].inner_text().strip()
+                    row_data = {}
                     
-                    # 提取样式
-                    change_pct_style = self._extract_cell_style(cells[3])
-                    premium_rate_t1_style = self._extract_cell_style(cells[11])
-                    rt_premium_rate_style = self._extract_cell_style(cells[13])
-                    apply_status_style = self._extract_cell_style(cells[16])
+                    # 1. 提取所有字段原始文本
+                    for i, col_name in enumerate(col_map):
+                        row_data[col_name] = cells[i].inner_text().strip()
                     
-                    data_list.append({
-                        "fund_code": fund_code,
-                        "fund_name": fund_name,
-                        "price": price,
-                        "change_pct": change_pct,
-                        "volume": volume,
-                        "shares": shares,
-                        "shares_change": shares_change,
-                        "nav_t2": nav_t2,
-                        "nav_date": nav_date,
-                        "valuation_t1": valuation_t1,
-                        "valuation_date": valuation_date,
-                        "premium_rate_t1": premium_rate_t1,
-                        "rt_valuation": rt_valuation,
-                        "rt_premium_rate": rt_premium_rate,
-                        "benchmark": benchmark,
-                        "apply_fee": apply_fee,
-                        "apply_status": apply_status,
-                        "redeem_fee": redeem_fee,
-                        "redeem_status": redeem_status,
-                        "manage_fee": manage_fee,
-                        "fund_company": fund_company,
-                        # 样式字段
-                        "change_pct_color": change_pct_style.get("color"),
-                        "premium_rate_t1_color": premium_rate_t1_style.get("color"),
-                        "rt_premium_rate_color": rt_premium_rate_style.get("color"),
-                        "apply_status_color": apply_status_style.get("color")
-                    })
+                    # 2. 提取所有字段样式
+                    for i, col_name in enumerate(col_map):
+                        style = self._extract_cell_style(cells[i])
+                        row_data[f"{col_name}_color"] = style.get("color")
+                    
+                    data_list.append(row_data)
                     
                 except Exception as e:
                     logger.warning(f"解析 QDII 行数据失败: {e}")
@@ -491,7 +468,7 @@ class JisiluScraper:
             db.close()
     
     def scrape_lof_index_data(self, page: Page) -> List[Dict]:
-        """抓取 LOF 指数基金数据 (保持原始格式，按溢价率倒序，全字段)"""
+        """抓取 LOF 指数基金数据 (含全量样式)"""
         logger.info("正在抓取 LOF 指数基金数据...")
         
         try:
@@ -515,6 +492,15 @@ class JisiluScraper:
             rows = page.query_selector_all("#flex_index tbody tr")
             logger.info(f"找到 {len(rows)} 行指数 LOF 数据")
             
+            # 20 个字段映射 (不含操作列)
+            col_map = [
+                "fund_code", "fund_name", "price", "change_pct", "volume", 
+                "shares", "shares_change", "turnover_rate", "nav", "nav_date", 
+                "rt_valuation", "premium_rate", "tracking_index", 
+                "index_change_pct", "apply_fee", "apply_status", 
+                "redeem_fee", "redeem_status", "fund_company", "remark"
+            ]
+            
             data_list = []
             for row in rows:
                 try:
@@ -522,61 +508,18 @@ class JisiluScraper:
                     if len(cells) < 20:  # 最少需要20列（索引0-19，索引20是操作列可忽略）
                         continue
                         
-                    # 提取所有字段的原始文本 (共21列，索引0-20)
-                    fund_code = cells[0].inner_text().strip()
-                    fund_name = cells[1].inner_text().strip()
-                    price = cells[2].inner_text().strip()
-                    change_pct = cells[3].inner_text().strip()
-                    volume = cells[4].inner_text().strip()
-                    shares = cells[5].inner_text().strip()
-                    shares_change = cells[6].inner_text().strip()
-                    turnover_rate = cells[7].inner_text().strip()
-                    nav = cells[8].inner_text().strip()
-                    nav_date = cells[9].inner_text().strip()
-                    rt_valuation = cells[10].inner_text().strip()
-                    premium_rate = cells[11].inner_text().strip()
-                    tracking_index = cells[12].inner_text().strip()
-                    index_change_pct = cells[13].inner_text().strip()
-                    apply_fee = cells[14].inner_text().strip()
-                    apply_status = cells[15].inner_text().strip()
-                    redeem_fee = cells[16].inner_text().strip()
-                    redeem_status = cells[17].inner_text().strip()
-                    fund_company = cells[18].inner_text().strip()
-                    remark = cells[19].inner_text().strip()
+                    row_data = {}
                     
-                    # 提取样式（保持原有的4个样式字段）
-                    change_pct_style = self._extract_cell_style(cells[3])
-                    premium_rate_style = self._extract_cell_style(cells[11])
-                    index_change_pct_style = self._extract_cell_style(cells[13])
-                    apply_status_style = self._extract_cell_style(cells[15])
+                    # 1. 提取所有字段原始文本
+                    for i, col_name in enumerate(col_map):
+                        row_data[col_name] = cells[i].inner_text().strip()
+                        
+                    # 2. 提取所有字段样式
+                    for i, col_name in enumerate(col_map):
+                        style = self._extract_cell_style(cells[i])
+                        row_data[f"{col_name}_color"] = style.get("color")
                     
-                    data_list.append({
-                        "fund_code": fund_code,
-                        "fund_name": fund_name,
-                        "price": price,
-                        "change_pct": change_pct,
-                        "volume": volume,
-                        "shares": shares,
-                        "shares_change": shares_change,
-                        "turnover_rate": turnover_rate,
-                        "nav": nav,
-                        "nav_date": nav_date,
-                        "rt_valuation": rt_valuation,
-                        "premium_rate": premium_rate,
-                        "tracking_index": tracking_index,
-                        "index_change_pct": index_change_pct,
-                        "apply_fee": apply_fee,
-                        "apply_status": apply_status,
-                        "redeem_fee": redeem_fee,
-                        "redeem_status": redeem_status,
-                        "fund_company": fund_company,
-                        "remark": remark,
-                        # 样式字段
-                        "change_pct_color": change_pct_style.get("color"),
-                        "premium_rate_color": premium_rate_style.get("color"),
-                        "index_change_pct_color": index_change_pct_style.get("color"),
-                        "apply_status_color": apply_status_style.get("color")
-                    })
+                    data_list.append(row_data)
                     
                 except Exception as e:
                     logger.warning(f"解析指数 LOF 行数据失败: {e}")
@@ -584,6 +527,10 @@ class JisiluScraper:
             
             logger.info(f"成功解析 {len(data_list)} 条指数 LOF 数据")
             return data_list
+
+        except Exception as e:
+            logger.error(f"抓取指数 LOF 数据异常: {e}")
+            return []
 
         except Exception as e:
             logger.error(f"抓取指数 LOF 数据异常: {e}")

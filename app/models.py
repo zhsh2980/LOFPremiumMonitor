@@ -47,11 +47,23 @@ class LOFData(Base):
     # 基金公司
     fund_company = Column(String(50), nullable=True, comment="基金公司")
     
-    # 样式信息（用于前端展示原始颜色）
-    change_pct_color = Column(String(30), nullable=True, comment="涨跌幅文字颜色(RGB)")
-    premium_rate_color = Column(String(30), nullable=True, comment="溢价率文字颜色(RGB)")
-    apply_status_color = Column(String(30), nullable=True, comment="申购状态文字颜色(RGB)")
-    apply_status_bg_color = Column(String(30), nullable=True, comment="申购状态背景色(RGB)")
+    # 样式信息（用于前端展示原始颜色）    # 样式信息 (全量字段)
+    price_color = Column(String(30), nullable=True)
+    change_pct_color = Column(String(30), nullable=True)
+    volume_color = Column(String(30), nullable=True)
+    amount_color = Column(String(30), nullable=True)
+    premium_rate_color = Column(String(30), nullable=True)
+    estimate_nav_color = Column(String(30), nullable=True)
+    nav_color = Column(String(30), nullable=True)
+    nav_date_color = Column(String(30), nullable=True)
+    shares_color = Column(String(30), nullable=True)
+    shares_change_color = Column(String(30), nullable=True)
+    apply_fee_color = Column(String(30), nullable=True)
+    apply_status_color = Column(String(30), nullable=True)
+    apply_status_bg_color = Column(String(30), nullable=True)  # 保留特有的背景色
+    redeem_fee_color = Column(String(30), nullable=True)
+    redeem_status_color = Column(String(30), nullable=True)
+    fund_company_color = Column(String(30), nullable=True)
     
     # 时间戳
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")
@@ -80,19 +92,26 @@ class LOFData(Base):
             "fund_company": self.fund_company,
             # 样式信息
             "styles": {
-                "change_pct": {
-                    "color": self.change_pct_color
-                },
-                "premium_rate": {
-                    "color": self.premium_rate_color
-                },
-                "apply_status": {
+                "price": { "color": self.price_color },
+                "change_pct": { "color": self.change_pct_color },
+                "volume": { "color": self.volume_color },
+                "amount": { "color": self.amount_color },
+                "premium_rate": { "color": self.premium_rate_color },
+                "estimate_nav": { "color": self.estimate_nav_color },
+                "nav": { "color": self.nav_color },
+                "nav_date": { "color": self.nav_date_color },
+                "shares": { "color": self.shares_color },
+                "shares_change": { "color": self.shares_change_color },
+                "apply_fee": { "color": self.apply_fee_color },
+                "apply_status": { 
                     "color": self.apply_status_color,
                     "backgroundColor": self.apply_status_bg_color
-                }
+                },
+                "redeem_fee": { "color": self.redeem_fee_color },
+                "redeem_status": { "color": self.redeem_status_color },
+                "fund_company": { "color": self.fund_company_color }
             }
         }
-
 
 
 class QDIIData(Base):
@@ -130,11 +149,26 @@ class QDIIData(Base):
     manage_fee = Column(String(50), comment="管托费")
     fund_company = Column(String(100), comment="基金公司")
     
-    # 样式信息
-    change_pct_color = Column(String(30), comment="涨幅颜色")
-    premium_rate_t1_color = Column(String(30), comment="T-1溢价率颜色")
-    rt_premium_rate_color = Column(String(30), comment="实时溢价率颜色")
-    apply_status_color = Column(String(30), comment="申购状态颜色")
+    # 样式信息 (全量字段)
+    price_color = Column(String(30), nullable=True)
+    change_pct_color = Column(String(30), nullable=True)
+    volume_color = Column(String(30), nullable=True)
+    shares_color = Column(String(30), nullable=True)
+    shares_change_color = Column(String(30), nullable=True)
+    nav_t2_color = Column(String(30), nullable=True)
+    nav_date_color = Column(String(30), nullable=True)
+    valuation_t1_color = Column(String(3(30), nullable=True))
+    valuation_date_color = Column(String(30), nullable=True)
+    premium_rate_t1_color = Column(String(30), nullable=True)
+    rt_valuation_color = Column(String(30), nullable=True)
+    rt_premium_rate_color = Column(String(30), nullable=True)
+    benchmark_color = Column(String(30), nullable=True)
+    apply_fee_color = Column(String(30), nullable=True)
+    apply_status_color = Column(String(30), nullable=True)
+    redeem_fee_color = Column(String(30), nullable=True)
+    redeem_status_color = Column(String(30), nullable=True)
+    manage_fee_color = Column(String(30), nullable=True)
+    fund_company_color = Column(String(30), nullable=True)
     
     # 时间戳
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")
@@ -165,10 +199,25 @@ class QDIIData(Base):
             "fund_company": self.fund_company,
             # 样式信息
             "styles": {
+                "price": { "color": self.price_color },
                 "change_pct": { "color": self.change_pct_color },
+                "volume": { "color": self.volume_color },
+                "shares": { "color": self.shares_color },
+                "shares_change": { "color": self.shares_change_color },
+                "nav_t2": { "color": self.nav_t2_color },
+                "nav_date": { "color": self.nav_date_color },
+                "valuation_t1": { "color": self.valuation_t1_color },
+                "valuation_date": { "color": self.valuation_date_color },
                 "premium_rate_t1": { "color": self.premium_rate_t1_color },
+                "rt_valuation": { "color": self.rt_valuation_color },
                 "rt_premium_rate": { "color": self.rt_premium_rate_color },
-                "apply_status": { "color": self.apply_status_color }
+                "benchmark": { "color": self.benchmark_color },
+                "apply_fee": { "color": self.apply_fee_color },
+                "apply_status": { "color": self.apply_status_color },
+                "redeem_fee": { "color": self.redeem_fee_color },
+                "redeem_status": { "color": self.redeem_status_color },
+                "manage_fee": { "color": self.manage_fee_color },
+                "fund_company": { "color": self.fund_company_color }
             }
         }
 
@@ -213,11 +262,25 @@ class LOFIndexData(Base):
     fund_company = Column(String(100), comment="基金公司")
     remark = Column(String(200), comment="备注")
     
-    # 样式信息
-    change_pct_color = Column(String(30), comment="涨幅颜色")
-    premium_rate_color = Column(String(30), comment="溢价率颜色")
-    index_change_pct_color = Column(String(30), comment="指数涨幅颜色")
-    apply_status_color = Column(String(30), comment="申购状态颜色")
+    # 样式信息 (全量字段)
+    price_color = Column(String(30), nullable=True)
+    change_pct_color = Column(String(30), nullable=True)
+    volume_color = Column(String(30), nullable=True)
+    shares_color = Column(String(30), nullable=True)
+    shares_change_color = Column(String(30), nullable=True)
+    turnover_rate_color = Column(String(30), nullable=True)
+    nav_color = Column(String(30), nullable=True)
+    nav_date_color = Column(String(30), nullable=True)
+    rt_valuation_color = Column(String(30), nullable=True)
+    premium_rate_color = Column(String(30), nullable=True)
+    tracking_index_color = Column(String(30), nullable=True)
+    index_change_pct_color = Column(String(30), nullable=True)
+    apply_fee_color = Column(String(30), nullable=True)
+    apply_status_color = Column(String(30), nullable=True)
+    redeem_fee_color = Column(String(30), nullable=True)
+    redeem_status_color = Column(String(30), nullable=True)
+    fund_company_color = Column(String(30), nullable=True)
+    remark_color = Column(String(30), nullable=True)
     
     # 时间戳
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")
@@ -247,10 +310,24 @@ class LOFIndexData(Base):
             "remark": self.remark,
             # 样式信息
             "styles": {
+                "price": { "color": self.price_color },
                 "change_pct": { "color": self.change_pct_color },
+                "volume": { "color": self.volume_color },
+                "shares": { "color": self.shares_color },
+                "shares_change": { "color": self.shares_change_color },
+                "turnover_rate": { "color": self.turnover_rate_color },
+                "nav": { "color": self.nav_color },
+                "nav_date": { "color": self.nav_date_color },
+                "rt_valuation": { "color": self.rt_valuation_color },
                 "premium_rate": { "color": self.premium_rate_color },
+                "tracking_index": { "color": self.tracking_index_color },
                 "index_change_pct": { "color": self.index_change_pct_color },
-                "apply_status": { "color": self.apply_status_color }
+                "apply_fee": { "color": self.apply_fee_color },
+                "apply_status": { "color": self.apply_status_color },
+                "redeem_fee": { "color": self.redeem_fee_color },
+                "redeem_status": { "color": self.redeem_status_color },
+                "fund_company": { "color": self.fund_company_color },
+                "remark": { "color": self.remark_color }
             }
         }
 
