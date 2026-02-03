@@ -140,6 +140,7 @@ def get_qdii_commodity(
             "count": len(items),
             "items": [item.to_dict() for item in items]
         }
+    }
 
 
 @router.get("/lof/index")
