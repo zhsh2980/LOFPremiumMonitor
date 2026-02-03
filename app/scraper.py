@@ -415,34 +415,52 @@ class JisiluScraper:
             logger.error(f"抓取 QDII 数据异常: {e}")
             return []
 
-    def save_to_database(self, lof_data: List[Dict], qdii_data: List[Dict]) -> int:
-        """保存数据到数据库 (包含 LOF 和 QDII)"""
-        logger.info(f"正在保存数据: LOF {len(lof_data)} 条, QDII {len(qdii_data)} 条")
+    def save_lof_to_database(self, data_list: List[Dict]) -> int:
+        """保存 LOF 数据到数据库"""
+        logger.info(f"正在保存 LOF 数据: {len(data_list)} 条")
         
         db = SessionLocal()
         try:
-            # 1. 保存 LOF 数据
-            if lof_data:
-                db.query(LOFData).delete()
-                for data in lof_data:
-                    lof = LOFData(**data)
-                    db.add(lof)
+            # 清空旧数据
+            db.query(LOFData).delete()
             
-            # 2. 保存 QDII 数据
-            if qdii_data:
-                db.query(QDIIData).delete()
-                for data in qdii_data:
-                    qdii = QDIIData(**data)
-                    db.add(qdii)
+            # 批量插入新数据
+            for data in data_list:
+                lof = LOFData(**data)
+                db.add(lof)
             
             db.commit()
-            total = len(lof_data) + len(qdii_data)
-            logger.info(f"成功保存共 {total} 条数据")
-            return total
+            logger.info(f"成功保存 LOF {len(data_list)} 条数据")
+            return len(data_list)
             
         except Exception as e:
             db.rollback()
-            logger.error(f"保存数据失败: {e}")
+            logger.error(f"保存 LOF 数据失败: {e}")
+            raise
+        finally:
+            db.close()
+    
+    def save_qdii_to_database(self, data_list: List[Dict]) -> int:
+        """保存 QDII 数据到数据库"""
+        logger.info(f"正在保存 QDII 数据: {len(data_list)} 条")
+        
+        db = SessionLocal()
+        try:
+            # 清空旧数据
+            db.query(QDIIData).delete()
+            
+            # 批量插入新数据
+            for data in data_list:
+                qdii = QDIIData(**data)
+                db.add(qdii)
+            
+            db.commit()
+            logger.info(f"成功保存 QDII {len(data_list)} 条数据")
+            return len(data_list)
+            
+        except Exception as e:
+            db.rollback()
+            logger.error(f"保存 QDII 数据失败: {e}")
             raise
         finally:
             db.close()
@@ -508,22 +526,37 @@ class JisiluScraper:
                     # 保存登录状态供下次使用
                     self._save_auth_state(self.context)
                 
-                # 抓取 LOF 数据
+                # 1. 抓取并保存 LOF 数据
+                logger.info("=" * 30 + " LOF 数据 " + "=" * 30)
                 lof_data = self.scrape_lof_data(self.page)
                 
-                # 抓取 QDII 数据
+                if lof_data:
+                    lof_count = self.save_lof_to_database(lof_data)
+                    logger.info(f"LOF 数据抓取完成: {lof_count} 条")
+                else:
+                    logger.warning("未获取到 LOF 数据")
+                    lof_count = 0
+                
+                # 2. 抓取并保存 QDII 数据
+                logger.info("=" * 30 + " QDII 数据 " + "=" * 30)
                 qdii_data = self.scrape_qdii_data(self.page)
                 
-                if not lof_data and not qdii_data:
+                if qdii_data:
+                    qdii_count = self.save_qdii_to_database(qdii_data)
+                    logger.info(f"QDII 数据抓取完成: {qdii_count} 条")
+                else:
+                    logger.warning("未获取到 QDII 数据")
+                    qdii_count = 0
+                
+                # 汇总
+                total_count = lof_count + qdii_count
+                if total_count == 0:
                     raise Exception("未获取到任何数据")
                 
-                # 保存到数据库
-                count = self.save_to_database(lof_data, qdii_data)
-                
                 duration = time.time() - start_time
-                self.log_scrape_result("success", count, duration=duration)
+                self.log_scrape_result("success", total_count, duration=duration)
                 
-                logger.info(f"抓取完成，共 {count} 条数据，耗时 {duration:.2f} 秒")
+                logger.info(f"抓取完成，共 {total_count} 条数据 (LOF: {lof_count}, QDII: {qdii_count})，耗时 {duration:.2f} 秒")
                 
                 # 手动关闭资源
                 if self.context:
