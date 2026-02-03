@@ -89,7 +89,19 @@ GET /api/lof/list?min_premium=2&status=open
         "redeem_fee": "1.50%",           // 赎回费率
         "redeem_status": "开放赎回",     // 赎回状态
         "shares_change": -1.0,           // 份额变化
-        "amount": 13.54                  // 成交额 (万元)
+        "amount": 13.54,                 // 成交额 (万元)
+        "styles": {                      // 样式信息 (原始展示风格)
+          "change_pct": {
+            "color": "#ff0000"           // 涨跌幅文字颜色 (HEX格式)
+          },
+          "premium_rate": {
+            "color": "#ff0000"           // 溢价率文字颜色
+          },
+          "apply_status": {
+            "color": "#008000",          // 申购状态文字颜色
+            "backgroundColor": null      // 申购状态背景色
+          }
+        }
       }
     ]
   }
