@@ -329,23 +329,116 @@ class JisiluScraper:
             logger.error(f"抓取数据异常: {e}")
             raise
     
-    def save_to_database(self, data_list: List[Dict]) -> int:
-        """保存数据到数据库"""
-        logger.info(f"正在保存 {len(data_list)} 条数据到数据库...")
+
+    def scrape_qdii_data(self, page: Page) -> List[Dict]:
+        """抓取 QDII 商品数据 (保持原始格式)"""
+        logger.info("正在抓取 QDII 商品数据...")
+        
+        try:
+            # 跳转到 QDII 页面并定位到商品标签
+            qdii_url = "https://www.jisilu.cn/data/qdii/#qdiie"
+            if page.url != qdii_url:
+                page.goto(qdii_url, wait_until="networkidle", timeout=30000)
+            
+            # 点击"商品"标签以确保加载
+            # 尝试查找并点击 ID 为 tlink_qdiie 的元素 (假设是标签ID)
+            try:
+                page.click("#tlink_qdiie", timeout=5000)
+            except:
+                logger.warning("未找到商品标签点击，尝试直接读取表格")
+            
+            # 等待表格加载
+            page.wait_for_selector("#flex_qdiic tbody tr", timeout=30000)
+            
+            # 提取数据
+            rows = page.query_selector_all("#flex_qdiic tbody tr")
+            logger.info(f"找到 {len(rows)} 行 QDII 商品数据")
+            
+            data_list = []
+            for row in rows:
+                try:
+                    cells = row.query_selector_all("td")
+                    if len(cells) < 14:
+                        continue
+                        
+                    # 提取原始文本 (innerText)
+                    fund_code = cells[0].inner_text().strip()
+                    fund_name = cells[1].inner_text().strip()
+                    price = cells[2].inner_text().strip()
+                    change_pct = cells[3].inner_text().strip()
+                    volume = cells[4].inner_text().strip()
+                    shares = cells[5].inner_text().strip()
+                    shares_change = cells[6].inner_text().strip()
+                    nav_t2 = cells[7].inner_text().strip()
+                    valuation_t1 = cells[8].inner_text().strip()
+                    premium_rate_t1 = cells[9].inner_text().strip()
+                    rt_valuation = cells[10].inner_text().strip()
+                    rt_premium_rate = cells[11].inner_text().strip()
+                    apply_status = cells[12].inner_text().strip()
+                    benchmark = cells[13].inner_text().strip()
+                    
+                    # 提取样式
+                    change_pct_style = self._extract_cell_style(cells[3])
+                    premium_rate_t1_style = self._extract_cell_style(cells[9])
+                    rt_premium_rate_style = self._extract_cell_style(cells[11])
+                    apply_status_style = self._extract_cell_style(cells[12])
+                    
+                    data_list.append({
+                        "fund_code": fund_code,
+                        "fund_name": fund_name,
+                        "price": price,
+                        "change_pct": change_pct,
+                        "volume": volume,
+                        "shares": shares,
+                        "shares_change": shares_change,
+                        "nav_t2": nav_t2,
+                        "valuation_t1": valuation_t1,
+                        "premium_rate_t1": premium_rate_t1,
+                        "rt_valuation": rt_valuation,
+                        "rt_premium_rate": rt_premium_rate,
+                        "apply_status": apply_status,
+                        "benchmark": benchmark,
+                        # 样式字段
+                        "change_pct_color": change_pct_style.get("color"),
+                        "premium_rate_t1_color": premium_rate_t1_style.get("color"),
+                        "rt_premium_rate_color": rt_premium_rate_style.get("color"),
+                        "apply_status_color": apply_status_style.get("color")
+                    })
+                    
+                except Exception as e:
+                    logger.warning(f"解析 QDII 行数据失败: {e}")
+                    continue
+            
+            return data_list
+
+        except Exception as e:
+            logger.error(f"抓取 QDII 数据异常: {e}")
+            return []
+
+    def save_to_database(self, lof_data: List[Dict], qdii_data: List[Dict]) -> int:
+        """保存数据到数据库 (包含 LOF 和 QDII)"""
+        logger.info(f"正在保存数据: LOF {len(lof_data)} 条, QDII {len(qdii_data)} 条")
         
         db = SessionLocal()
         try:
-            # 清空旧数据
-            db.query(LOFData).delete()
+            # 1. 保存 LOF 数据
+            if lof_data:
+                db.query(LOFData).delete()
+                for data in lof_data:
+                    lof = LOFData(**data)
+                    db.add(lof)
             
-            # 批量插入新数据
-            for data in data_list:
-                lof = LOFData(**data)
-                db.add(lof)
+            # 2. 保存 QDII 数据
+            if qdii_data:
+                db.query(QDIIData).delete()
+                for data in qdii_data:
+                    qdii = QDIIData(**data)
+                    db.add(qdii)
             
             db.commit()
-            logger.info(f"成功保存 {len(data_list)} 条数据")
-            return len(data_list)
+            total = len(lof_data) + len(qdii_data)
+            logger.info(f"成功保存共 {total} 条数据")
+            return total
             
         except Exception as e:
             db.rollback()
@@ -415,14 +508,17 @@ class JisiluScraper:
                     # 保存登录状态供下次使用
                     self._save_auth_state(self.context)
                 
-                # 抓取数据
-                data_list = self.scrape_lof_data(self.page)
+                # 抓取 LOF 数据
+                lof_data = self.scrape_lof_data(self.page)
                 
-                if not data_list:
+                # 抓取 QDII 数据
+                qdii_data = self.scrape_qdii_data(self.page)
+                
+                if not lof_data and not qdii_data:
                     raise Exception("未获取到任何数据")
                 
                 # 保存到数据库
-                count = self.save_to_database(data_list)
+                count = self.save_to_database(lof_data, qdii_data)
                 
                 duration = time.time() - start_time
                 self.log_scrape_result("success", count, duration=duration)

@@ -11,7 +11,7 @@ from sqlalchemy import desc
 
 from app.config import get_settings
 from app.database import get_db
-from app.models import LOFData, ScrapeLog
+from app.models import LOFData, ScrapeLog, QDIIData
 from app.scheduler import get_scheduler
 
 router = APIRouter()
@@ -106,6 +106,31 @@ def get_lof_all(
     
     # 获取最后更新时间
     update_time = get_last_scrape_time(db)
+    
+    return {
+        "code": 0,
+        "message": "success",
+        "data": {
+            "update_time": update_time.isoformat() if update_time else None,
+            "count": len(items),
+            "items": [item.to_dict() for item in items]
+        }
+    }
+
+
+@router.get("/qdii/commodity")
+def get_qdii_commodity(
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """
+    获取 QDII 商品数据 (原始格式)
+    """
+    # 获取最后更新时间
+    update_time = get_last_scrape_time(db)
+    
+    # 获取所有 QDII 商品数据
+    items = db.query(QDIIData).all()
     
     return {
         "code": 0,
