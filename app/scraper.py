@@ -357,10 +357,10 @@ class JisiluScraper:
             for row in rows:
                 try:
                     cells = row.query_selector_all("td")
-                    if len(cells) < 14:
+                    if len(cells) < 21:  # 至少需要21列（0-20是数据，21是操作）
                         continue
                         
-                    # 提取原始文本 (innerText)
+                    # 提取原始文本 (共 22 列)
                     fund_code = cells[0].inner_text().strip()
                     fund_name = cells[1].inner_text().strip()
                     price = cells[2].inner_text().strip()
@@ -369,18 +369,25 @@ class JisiluScraper:
                     shares = cells[5].inner_text().strip()
                     shares_change = cells[6].inner_text().strip()
                     nav_t2 = cells[7].inner_text().strip()
-                    valuation_t1 = cells[8].inner_text().strip()
-                    premium_rate_t1 = cells[9].inner_text().strip()
-                    rt_valuation = cells[10].inner_text().strip()
-                    rt_premium_rate = cells[11].inner_text().strip()
-                    apply_status = cells[12].inner_text().strip()
-                    benchmark = cells[13].inner_text().strip()
+                    nav_date = cells[8].inner_text().strip()
+                    valuation_t1 = cells[9].inner_text().strip()
+                    valuation_date = cells[10].inner_text().strip()
+                    premium_rate_t1 = cells[11].inner_text().strip()
+                    rt_valuation = cells[12].inner_text().strip()
+                    rt_premium_rate = cells[13].inner_text().strip()
+                    benchmark = cells[14].inner_text().strip()
+                    apply_fee = cells[15].inner_text().strip()
+                    apply_status = cells[16].inner_text().strip()
+                    redeem_fee = cells[17].inner_text().strip()
+                    redeem_status = cells[18].inner_text().strip()
+                    manage_fee = cells[19].inner_text().strip()
+                    fund_company = cells[20].inner_text().strip()
                     
                     # 提取样式
                     change_pct_style = self._extract_cell_style(cells[3])
-                    premium_rate_t1_style = self._extract_cell_style(cells[9])
-                    rt_premium_rate_style = self._extract_cell_style(cells[11])
-                    apply_status_style = self._extract_cell_style(cells[12])
+                    premium_rate_t1_style = self._extract_cell_style(cells[11])
+                    rt_premium_rate_style = self._extract_cell_style(cells[13])
+                    apply_status_style = self._extract_cell_style(cells[16])
                     
                     data_list.append({
                         "fund_code": fund_code,
@@ -391,12 +398,19 @@ class JisiluScraper:
                         "shares": shares,
                         "shares_change": shares_change,
                         "nav_t2": nav_t2,
+                        "nav_date": nav_date,
                         "valuation_t1": valuation_t1,
+                        "valuation_date": valuation_date,
                         "premium_rate_t1": premium_rate_t1,
                         "rt_valuation": rt_valuation,
                         "rt_premium_rate": rt_premium_rate,
-                        "apply_status": apply_status,
                         "benchmark": benchmark,
+                        "apply_fee": apply_fee,
+                        "apply_status": apply_status,
+                        "redeem_fee": redeem_fee,
+                        "redeem_status": redeem_status,
+                        "manage_fee": manage_fee,
+                        "fund_company": fund_company,
                         # 样式字段
                         "change_pct_color": change_pct_style.get("color"),
                         "premium_rate_t1_color": premium_rate_t1_style.get("color"),

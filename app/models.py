@@ -114,14 +114,21 @@ class QDIIData(Base):
     
     # 净值/估值数据
     nav_t2 = Column(String(50), comment="T-2净值")
+    nav_date = Column(String(50), comment="净值日期")
     valuation_t1 = Column(String(50), comment="T-1估值")
+    valuation_date = Column(String(50), comment="估值日期")
     premium_rate_t1 = Column(String(50), comment="T-1溢价率")
     rt_valuation = Column(String(50), comment="实时估值")
     rt_premium_rate = Column(String(50), comment="实时溢价率")
-    
-    # 状态
-    apply_status = Column(String(50), comment="申购状态")
     benchmark = Column(String(100), comment="相关标的")
+    
+    # 费率与状态
+    apply_fee = Column(String(50), comment="申购费")
+    apply_status = Column(String(50), comment="申购状态")
+    redeem_fee = Column(String(50), comment="赎回费")
+    redeem_status = Column(String(50), comment="赎回状态")
+    manage_fee = Column(String(50), comment="管托费")
+    fund_company = Column(String(100), comment="基金公司")
     
     # 样式信息
     change_pct_color = Column(String(30), comment="涨幅颜色")
@@ -143,12 +150,19 @@ class QDIIData(Base):
             "shares": self.shares,
             "shares_change": self.shares_change,
             "nav_t2": self.nav_t2,
+            "nav_date": self.nav_date,
             "valuation_t1": self.valuation_t1,
+            "valuation_date": self.valuation_date,
             "premium_rate_t1": self.premium_rate_t1,
             "rt_valuation": self.rt_valuation,
             "rt_premium_rate": self.rt_premium_rate,
-            "apply_status": self.apply_status,
             "benchmark": self.benchmark,
+            "apply_fee": self.apply_fee,
+            "apply_status": self.apply_status,
+            "redeem_fee": self.redeem_fee,
+            "redeem_status": self.redeem_status,
+            "manage_fee": self.manage_fee,
+            "fund_company": self.fund_company,
             # 样式信息
             "styles": {
                 "change_pct": { "color": self.change_pct_color },

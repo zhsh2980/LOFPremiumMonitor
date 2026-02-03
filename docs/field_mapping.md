@@ -13,15 +13,27 @@
 | 2 | 现价 | `price` | String | 当前价格（原始文本） | ❌ |
 | 3 | 涨幅 | `change_pct` | String | 涨跌幅百分比 | ✅ 颜色 |
 | 4 | 成交(万元) | `volume` | String | 成交额（万元） | ❌ |
-| 5 | 场内份额 | `shares` | String | 场内份额 | ❌ |
-| 6 | 份额新增 | `shares_change` | String | 份额变化 | ❌ |
+| 5 | 场内份额(万份) | `shares` | String | 场内份额 | ❌ |
+| 6 | 场内新增(万份) | `shares_change` | String | 份额变化 | ❌ |
 | 7 | T-2净值 | `nav_t2` | String | T-2日净值 | ❌ |
-| 8 | T-1估值 | `valuation_t1` | String | T-1日估值 | ❌ |
-| 9 | T-1溢价率 | `premium_rate_t1` | String | T-1日溢价率 | ✅ 颜色 |
-| 10 | 实时估值 | `rt_valuation` | String | 实时估值 | ❌ |
-| 11 | 实时溢价率 | `rt_premium_rate` | String | 实时溢价率 | ✅ 颜色 |
-| 12 | 申购状态 | `apply_status` | String | 申购状态（开放/暂停/限额等） | ✅ 颜色 |
-| 13 | 相关标的 | `benchmark` | String | 相关指数或标的 | ❌ |
+| 8 | 净值日期 | `nav_date` | String | 净值日期 | ❌ |
+| 9 | T-1估值 | `valuation_t1` | String | T-1日估值 | ❌ |
+| 10 | 估值日期 | `valuation_date` | String | 估值日期 | ❌ |
+| 11 | T-1溢价率 | `premium_rate_t1` | String | T-1日溢价率 | ✅ 颜色 |
+| 12 | 实时估值 | `rt_valuation` | String | 实时估值 | ❌ |
+| 13 | 实时溢价率 | `rt_premium_rate` | String | 实时溢价率 | ✅ 颜色 |
+| 14 | 相关标的/业绩比较 | `benchmark` | String | 相关指数或标的 | ❌ |
+| 15 | 申购费 | `apply_fee` | String | 申购费率 | ❌ |
+| 16 | 申购状态 | `apply_status` | String | 申购状态 | ✅ 颜色 |
+| 17 | 赎回费 | `redeem_fee` | String | 赎回费率 | ❌ |
+| 18 | 赎回状态 | `redeem_status` | String | 赎回状态 | ❌ |
+| 19 | 管托费 | `manage_fee` | String | 基金管理费/托管费 | ❌ |
+| 20 | 基金公司 | `fund_company` | String | 管理公司 | ❌ |
+| 21 | 操作 | - | - | 操作列（不抓取） | ❌ |
+
+**说明**:
+- **共 21 列，全部抓取**
+- 字段顺序已根据最新页面结构修正
 
 **样式字段说明**:
 - `change_pct_color`: 涨跌幅文字颜色 (HEX 格式，如 `#ff0000` 红色表示涨，`#008000` 绿色表示跌)
