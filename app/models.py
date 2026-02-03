@@ -157,7 +157,7 @@ class QDIIData(Base):
     shares_change_color = Column(String(30), nullable=True)
     nav_t2_color = Column(String(30), nullable=True)
     nav_date_color = Column(String(30), nullable=True)
-    valuation_t1_color = Column(String(3(30), nullable=True))
+    valuation_t1_color = Column(String(30), nullable=True)
     valuation_date_color = Column(String(30), nullable=True)
     premium_rate_t1_color = Column(String(30), nullable=True)
     rt_valuation_color = Column(String(30), nullable=True)
