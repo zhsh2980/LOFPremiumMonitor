@@ -47,6 +47,12 @@ class LOFData(Base):
     # 基金公司
     fund_company = Column(String(50), nullable=True, comment="基金公司")
     
+    # 样式信息（用于前端展示原始颜色）
+    change_pct_color = Column(String(30), nullable=True, comment="涨跌幅文字颜色(RGB)")
+    premium_rate_color = Column(String(30), nullable=True, comment="溢价率文字颜色(RGB)")
+    apply_status_color = Column(String(30), nullable=True, comment="申购状态文字颜色(RGB)")
+    apply_status_bg_color = Column(String(30), nullable=True, comment="申购状态背景色(RGB)")
+    
     # 时间戳
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")
     
@@ -72,6 +78,19 @@ class LOFData(Base):
             "redeem_fee": self.redeem_fee,
             "redeem_status": self.redeem_status,
             "fund_company": self.fund_company,
+            # 样式信息
+            "styles": {
+                "change_pct": {
+                    "color": self.change_pct_color
+                },
+                "premium_rate": {
+                    "color": self.premium_rate_color
+                },
+                "apply_status": {
+                    "color": self.apply_status_color,
+                    "backgroundColor": self.apply_status_bg_color
+                }
+            }
         }
 
 

@@ -108,6 +108,45 @@ class JisiluScraper:
         
         return name, tags
     
+    def _extract_cell_style(self, cell) -> dict:
+        """
+        提取单元格的文字颜色和背景色
+        返回: {"color": "#rrggbb", "backgroundColor": "#rrggbb"}
+        颜色格式为 HEX（如 #ff0000）
+        """
+        try:
+            style = cell.evaluate("""
+                (el) => {
+                    const computed = window.getComputedStyle(el);
+                    
+                    // 将 rgb/rgba 转换为 HEX 格式
+                    function rgbToHex(rgbStr) {
+                        if (!rgbStr || rgbStr === 'rgba(0, 0, 0, 0)') return null;
+                        
+                        const match = rgbStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (!match) return null;
+                        
+                        const r = parseInt(match[1]);
+                        const g = parseInt(match[2]);
+                        const b = parseInt(match[3]);
+                        
+                        return '#' + [r, g, b].map(x => {
+                            const hex = x.toString(16);
+                            return hex.length === 1 ? '0' + hex : hex;
+                        }).join('');
+                    }
+                    
+                    return {
+                        color: rgbToHex(computed.color),
+                        backgroundColor: rgbToHex(computed.backgroundColor)
+                    };
+                }
+            """)
+            return style
+        except Exception as e:
+            logger.warning(f"提取样式失败: {e}")
+            return {"color": None, "backgroundColor": None}
+    
     def _has_saved_auth_state(self) -> bool:
         """检查是否有保存的登录状态"""
         return AUTH_STATE_FILE.exists()
@@ -244,6 +283,11 @@ class JisiluScraper:
                     redeem_status = cells[14].inner_text().strip()
                     fund_company = cells[15].inner_text().strip()
                     
+                    # 提取样式信息
+                    change_pct_style = self._extract_cell_style(cells[3])
+                    premium_rate_style = self._extract_cell_style(cells[5])
+                    apply_status_style = self._extract_cell_style(cells[12])
+                    
                     # 跳过无效数据
                     if not fund_code or premium_rate is None:
                         continue
@@ -267,6 +311,11 @@ class JisiluScraper:
                         "redeem_fee": redeem_fee if redeem_fee and redeem_fee != "-" else None,
                         "redeem_status": redeem_status if redeem_status and redeem_status != "-" else None,
                         "fund_company": fund_company if fund_company else None,
+                        # 样式信息
+                        "change_pct_color": change_pct_style.get("color"),
+                        "premium_rate_color": premium_rate_style.get("color"),
+                        "apply_status_color": apply_status_style.get("color"),
+                        "apply_status_bg_color": apply_status_style.get("backgroundColor"),
                     })
                     
                 except Exception as e:
