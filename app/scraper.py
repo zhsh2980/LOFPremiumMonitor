@@ -117,11 +117,23 @@ class JisiluScraper:
         try:
             style = cell.evaluate("""
                 (el) => {
-                    const computed = window.getComputedStyle(el);
+                    // 优先检查内部 span 元素（如 QDII 数据中的颜色样式）
+                    let targetEl = el;
+                    const span = el.querySelector('span');
+                    if (span) {
+                        targetEl = span;
+                    }
+                    
+                    const computed = window.getComputedStyle(targetEl);
+                    const bgComputed = window.getComputedStyle(el); // 背景色通常还在 td 上
                     
                     // 将 rgb/rgba 转换为 HEX 格式
                     function rgbToHex(rgbStr) {
                         if (!rgbStr || rgbStr === 'rgba(0, 0, 0, 0)') return null;
+                        
+                        // 过滤常见的默认黑色/深灰 (如 rgb(51, 51, 51) 或 rgb(61, 61, 61))
+                        // 如果是 span，我们通常只关心显著的颜色（红/绿）
+                        // 但为了保险，还是都返回
                         
                         const match = rgbStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
                         if (!match) return null;
@@ -138,7 +150,7 @@ class JisiluScraper:
                     
                     return {
                         color: rgbToHex(computed.color),
-                        backgroundColor: rgbToHex(computed.backgroundColor)
+                        backgroundColor: rgbToHex(bgComputed.backgroundColor)
                     };
                 }
             """)
