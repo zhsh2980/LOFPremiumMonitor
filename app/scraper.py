@@ -16,7 +16,7 @@ from loguru import logger
 
 from app.config import get_settings
 from app.database import SessionLocal
-from app.models import LOFData, ScrapeLog
+from app.models import LOFData, ScrapeLog, QDIIData
 
 # 登录状态保存路径
 AUTH_STATE_FILE = Path("/tmp/jisilu_auth_state.json")
