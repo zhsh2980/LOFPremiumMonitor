@@ -118,8 +118,48 @@ GET /api/lof/list?min_premium=2&status=open
 **请求参数**:
 - `status`: 申购状态筛选 (同上)
 
+### 2.4 获取指数 LOF 数据 (按溢价率倒序)
 
-### 2.4 获取 QDII 商品数据
+获取指数 LOF 基金数据，已按溢价率倒序排列（原始文本格式）。
+
+- **接口地址**: `GET /api/lof/index`
+- **认证**: 需要
+
+**响应示例**:
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "update_time": "2026-02-03T22:27:27.086940",
+    "count": 125,
+    "items": [
+      {
+        "fund_code": "161226",
+        "fund_name": "国投白银LOF",
+        "price": "4.250",               // 原始文本
+        "change_pct": "-10.00%",        // 涨幅
+        "volume": "10658.07",           // 成交额（万元）
+        "premium_rate": "82.89%",       // 溢价率（已倒序排序）
+        "index_change_pct": "-17.90%",  // 指数涨幅
+        "apply_status": "暂停申购",
+        "styles": {
+          "change_pct": { "color": "#008000" },      // 绿色（跌）
+          "premium_rate": { "color": "#ff0000" },    // 红色（正溢价）
+          "index_change_pct": { "color": "#008000" },
+          "apply_status": { "color": "#999999" }     // 灰色（暂停）
+        }
+      }
+    ]
+  }
+}
+```
+
+**说明**:
+- 数据已在抓取时通过点击"溢价率"表头两次实现倒序排序
+- 溢价率最高的基金排在最前面
+
+### 2.5 获取 QDII 商品数据
 
 获取 QDII 页面底部的商品基金数据（原始文本格式）。
 
@@ -162,7 +202,7 @@ GET /api/lof/list?min_premium=2&status=open
 }
 ```
 
-### 2.5 获取抓取日志
+### 2.6 获取抓取日志
 
 查看最近的后台抓取任务执行记录，用于监控或排查问题。
 
@@ -193,7 +233,7 @@ GET /api/lof/list?min_premium=2&status=open
 }
 ```
 
-### 2.5 健康检查
+### 2.7 健康检查
 
 用于负载均衡器或监控系统检查服务是否存活。
 
